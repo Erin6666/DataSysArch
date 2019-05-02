@@ -12,7 +12,10 @@ typedef struct _node{
 
 typedef struct _lsm{
   SkipList <int, string> sl;
-  size_t block_size; 
+  size_t block_size;
+  size_t block2_size;
+  size_t block3_size;
+  size_t block4_size; 
   int k; 
   int node_size;
   size_t next_empty;

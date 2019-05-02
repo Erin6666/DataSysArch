@@ -12,11 +12,7 @@
 using namespace std;
 
 void check_file_ret(FILE* f, int r){
-  /*Check return value of file pointer.
-    Args: 
-    f (FILE*): file pointer. 
-    r (int): file return value.
-  */  
+
   if(r == 0){ 
     if(ferror(f)){
       perror("ferror\n");
@@ -38,9 +34,9 @@ lsm* init_new_lsm(size_t buffer_size, bool sorted){
 
   tree->block_size = buffer_size;
   tree->k = 2; 
-  tree->next_empty = sizeof(tree->sl); 
+  tree->next_empty = 0; 
   tree->node_size = sizeof(node);
-  tree->block = malloc(tree->block_size*tree->node_size); 
+  tree->block = malloc(tree->block_size*(tree->node_size)); 
   if(!tree->block){
     perror("init_lsm: block is null \n");
     return NULL;
@@ -64,9 +60,7 @@ void destruct_lsm(lsm* tree){
 }
 
 void merge(node *whole, node *left,int left_size,node *right,int right_size){
-  /* Performs the merge step in merge sort. 
-     Args:
-     whole (node*): pointer to the node representing the merged array of nodes. 
+  /* whole (node*): pointer to the node representing the merged array of nodes. 
      left (node*): pointer to the left split of nodes to be merged. 
      left_size (int): int representing the the size of the left split. 
      right (node*): pointer to the right split of nodes to be merged. 
@@ -74,20 +68,26 @@ void merge(node *whole, node *left,int left_size,node *right,int right_size){
   */    
   int l, r, i;
   l = 0; r = 0; i = 0;
-
+  //cout<<left_size<<" lr "<<right_size<<endl;
   while(l < left_size && r < right_size) {
+
+	cout<<i<<l<<r<<endl;
     if(left[l].key  < right[r].key){
+
       whole[i++] = left[l++];
     } else{
       whole[i++] = right[r++];
     }
   }
+
   while(l < left_size){
     whole[i++] = left[l++];
   }
+
   while(r < right_size){
     whole[i++] = right[r++];
-  }
+	}
+
 }
 
 
@@ -121,10 +121,17 @@ void merge_sort(node *block, int n){
 
 
 nodei* search_buffer(const keyType* key, lsm* tree){
-  /* Args: 
-     key (keyType*): key to search for. 
-     tree (lsm*): pointer to an lsm tree. 
-   */
+  valType value;
+  bool find=tree->sl.Find(key,value);
+  if(find)
+  {
+	  nodei* nodei = malloc(sizeof(nodei));
+      nodei->node = malloc(sizeof(node));
+      nodei->node->key = key;
+      nodei->node->val = value;
+      nodei->index = key;
+      return nodei;
+  }
   for (int i = 0; i < tree->next_empty; i++){
     if (tree->block[i].key == *key){
       nodei* nodei = malloc(sizeof(nodei));
@@ -201,35 +208,47 @@ int write_to_disk(lsm* tree){
      Args: 
      tree (lsm*): pointer to an lsm tree.
    */
-  node *complete_data = NULL;
-  node *file_data = NULL;
+
+  node *complete_data = new node;
+  node *file_data = new node;
   size_t num_elements = 0;
   int r;
   //sort the buffer 
   if(tree->sorted){
     merge_sort(tree->block, tree->next_empty);
   } 
+	
   struct stat s; 
   int file_exists = stat(tree->disk1, &s); 
   if(file_exists == 0){
+
     // the file already exists 
     FILE* fr  = fopen(tree->disk1, "r");
     // read number of elements 
     r = fread(&num_elements, sizeof(size_t), 1, fr);
     check_file_ret(fr, r);
+	//cout<<"ne: "<<num_elements;	
     file_data = malloc(sizeof(node)*num_elements);
-    assert(file_data);
+    //assert(file_data);
     r = fread(file_data, sizeof(node), num_elements, fr);
     check_file_ret(fr, r);
     if(fclose(fr)){
       perror("put: close 2: \n");
     }
+	
     // merge buffer and  disk
     complete_data = malloc(sizeof(node)*(num_elements+tree->next_empty));
+	//cout<<sizeof(complete_data);
+	cout<<num_elements<<"  "<<tree->next_empty<<endl;
+	for (int it=0;it<100;it++)
+		{//cout<<"it: "<<it<<" "<<file_data[it].key<< " "<<file_data[it].key<<endl;	
+		}
     merge(complete_data, file_data, num_elements, tree->block,tree->next_empty);
+	//cout<<"merge done"<<endl;
     num_elements += tree->block_size;
-    free(file_data);
+    //free(file_data);
   }
+
   FILE* fw  = fopen(tree->disk1, "w");
   if(complete_data == NULL){
     complete_data = tree->block;
@@ -252,6 +271,7 @@ int write_to_disk(lsm* tree){
     perror("put: fwrite 5: \n");
     }
   // reset next_empty to 0
+  //cout<<"here"<<endl;
   tree->sl.~SkipList();
   tree->next_empty = 0;
   if(fclose(fw)){
@@ -262,13 +282,15 @@ int write_to_disk(lsm* tree){
 
 
 int put(const keyType* key, const valType* val, lsm* tree){
-
+  //cout<<"nextempty: "<<tree->next_empty<<endl;
+	//cout<<*key<<*val;
   int r = 0; 
-  tree->sl.Insert(*key,*val);
-  tree->sl.Print();
+  //tree->sl.Insert(*key,*val);
+  //tree->sl.Print();
   if(tree->next_empty == tree->block_size){
     // buffer is full and must be written to disk
     r = write_to_disk(tree); 
+	
   }
   node n;
   n.key = *key;
@@ -340,12 +362,6 @@ int lsmdelete(const keyType* key, lsm* tree){
 
 
 int update(const keyType* key, const valType* val, lsm* tree){
-  /* Searches buffer &  disk for key, updates associated value. 
-     Args:
-     key (const keyType*): pointer to key to search for. 
-     val (const valType*): pointer to val to update. 
-     tree (lsm*): pointer to lsm object to make update in. 
-  */
   int r; 
   nodei* ni = search_buffer(key, tree);
   //printf("index is: ni %d \n", ni->index);

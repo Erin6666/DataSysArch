@@ -10,6 +10,7 @@
 #include "lsm.hpp"
 #include "test.hpp"
 #include <iostream>
+#include <time.h>
 using namespace std;
 
 
@@ -19,23 +20,21 @@ void test_print_tree(lsm* tree){
 
 
 int test_put(lsm* tree, int data_size, int buffer_size, bool sorted, bool timing){
-  /* tree: pointer to lsm object.
-     data_size: int specifying how much data to add.
-     buffer_size: int specifying in-memory buffer size.
-     sorted: bool if true, data will be sorted on disk.*/
-  srand(0);
+
+  srand((int)time(0));
   int r;
   clock_t start, end;
   start = clock();
+
   for(int i = 0; i < data_size; i++){
     keyType k;
     valType v;
     k = (keyType)i;
-    v = to_string(i); 
+    v = std::to_string(i); 
 	//cout<<"here"<<endl;
     r = put(&k,&v,tree);
 	
-	cout<<i;
+	//cout<<i<<" "<<r;
     assert(r==0);
   }
   end = clock();
@@ -47,19 +46,20 @@ int test_put(lsm* tree, int data_size, int buffer_size, bool sorted, bool timing
 }
 
 int test_delete(lsm* tree, int data_size, int nops, bool timing){
-  /* Deletes a single item in range (0, `data_size`).
-     Args:
-     tree: pointer to lsm object.
-     data_size: int specifying size of data stored.
-     nops: specifies number of times to run operation.*/
+  /* Deletes a single item in range (0, `data_size`).*/
   int r = 0; 
   clock_t start, end;
   start = clock();
   for(int i = 0; i < nops; i++){
     keyType k;
-    k = (keyType)((rand() % data_size)+10);
+    k = (keyType)((rand() % data_size));
+	node* n=get(&k,tree);
+	if(n!=NULL)
+	{
+	
     printf("deleting key: %d \n", k);
     r = lsmdelete(&k, tree);
+	}
   }
   end = clock();
   if(timing){
@@ -71,11 +71,6 @@ int test_delete(lsm* tree, int data_size, int nops, bool timing){
 
 
 int test_get(lsm* tree, int data_size, int nops, bool timing){
-  /* Retrieves an item from the LSM in range (0, `data_size`).
-     Args:
-     tree: pointer to lsm object.
-     data_size: int specifying size of data stored.
-     nops: specifies number of times to run operation.*/
   int r = 0; 
   clock_t start, end;
   start = clock();
@@ -120,42 +115,7 @@ int test_update(lsm* tree, int data_size, int nops, bool timing){
 }
 
 int test_throughput(lsm* tree, int data_size, int buffer_size, bool sorted, int nops, float put_prob, float update_prob, bool timing){
-  /*Tests LSM's throughput by trying many operations of different probabilities. 
-    Args: 
-    tree: pointer to lsm object. 
-    data_size: int specifying size of data stored. 
-    nops: specifies number of times to run operation.*/
-  int r = 0; 
-  int ndata = 0; 
-  clock_t start, end;
-  start = clock();
-  for(int i = 0; i < nops; i++){ 
-    float rand_val = rand() % 99;
-    if(rand_val <= put_prob){
-      keyType k;
-      valType v;
-      k = (keyType)ndata;
-      v = std::to_string(rand());
-      put(&k, &v, tree);
-      ndata++; 
-    }else if(rand_val > put_prob && rand_val <= put_prob+update_prob){
-      keyType k;
-      valType v;
-      k = (keyType)rand()%(ndata-1);
-      v = std::to_string(rand());
-      update(&k, &v, tree);
-    } else {
-      keyType k;
-      k = (keyType)rand()%(ndata-1);
-      get(k, tree);
-    }
-  }
-  end = clock();
-  if(timing){
-    double time_elapsed = (double)end-start/CLOCKS_PER_SEC;
-    printf("%f,", time_elapsed);
-  }
-  return 0; 
+  return 0;
 }
 
 int main(int argc, char* args[]){
@@ -190,11 +150,11 @@ int main(int argc, char* args[]){
  	 bool a=(testing.compare("put")==0);
 	bool b=(testing.compare("get")==0);
 	bool c=(testing.compare("upd")==0);
-	bool d=(testing.compare("thr")==0);
+	bool d=(testing.compare("del")==0);
  // cout<<a<<b<<c<<d<<endl;
   if(a==1){
     /* TEST PUT */ 
-	cout<<argc<<" "<<data_size<<buffer_size<<nops<<testing<<endl;
+	//cout<<argc<<" "<<data_size<<buffer_size<<nops<<testing<<endl;
     r = test_put(tree, data_size, buffer_size, sorted, true);
   }
   if(b==1){

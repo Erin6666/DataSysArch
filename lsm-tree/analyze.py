@@ -2,7 +2,7 @@
 import numpy as np 
 import cPickle as pickle 
 
-actions = ['put_unsorted', 'put_sorted', 'get_sorted', 'update_sorted', 'update_unsorted', 'get_unsorted', 'throughput_unsorted', 'throughput_sorted'] 
+actions = ['put_unsorted', 'put_sorted', 'get_sorted', 'update_sorted', 'update_unsorted', 'get_unsorted', 'delete_unsorted', 'delete_sorted'] 
 data_sizes = ['1000', '10000', '100000']
 buffer_sizes = ['100', '1000', '10000', '100000']  
 
