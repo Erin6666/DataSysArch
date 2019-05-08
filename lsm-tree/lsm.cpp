@@ -71,7 +71,7 @@ void merge(node *whole, node *left,int left_size,node *right,int right_size){
   //cout<<left_size<<" lr "<<right_size<<endl;
   while(l < left_size && r < right_size) {
 
-	cout<<i<<l<<r<<endl;
+	//cout<<i<<l<<r<<endl;
     if(left[l].key  < right[r].key){
 
       whole[i++] = left[l++];
@@ -204,23 +204,28 @@ node* get(const keyType key, lsm* tree){
 }
 
 int write_to_disk(lsm* tree){
-  /* Write all data (in disk & in memory) to disk. 
-     Args: 
-     tree (lsm*): pointer to an lsm tree.
+  /* Write all data to disk. 
    */
-
+  size_t disk_size1=1000;
+  size_t disk_size2=4000;
+  size_t disk_size3=16000;
   node *complete_data = new node;
   node *file_data = new node;
+  node *file_data2 = new node;
+  node *file_data3 = new node;
+  node *file_data4 = new node;
   size_t num_elements = 0;
+  size_t num_elements2 = 0;
+  size_t num_elements3 = 0;
+  size_t num_elements4 = 0;
   int r;
-  //sort the buffer 
-  if(tree->sorted){
-    merge_sort(tree->block, tree->next_empty);
-  } 
 	
   struct stat s; 
-  int file_exists = stat(tree->disk1, &s); 
-  if(file_exists == 0){
+  int file_exists1 = stat(tree->disk1, &s); 
+  int file_exists2 = stat(tree->disk2, &s); 
+  int file_exists3 = stat(tree->disk3, &s); 
+  int file_exists4 = stat(tree->disk4, &s); 
+  if(file_exists1 == 0){
 
     // the file already exists 
     FILE* fr  = fopen(tree->disk1, "r");
@@ -239,7 +244,7 @@ int write_to_disk(lsm* tree){
     // merge buffer and  disk
     complete_data = malloc(sizeof(node)*(num_elements+tree->next_empty));
 	//cout<<sizeof(complete_data);
-	cout<<num_elements<<"  "<<tree->next_empty<<endl;
+	//cout<<num_elements<<"  "<<tree->next_empty<<endl;
 	for (int it=0;it<100;it++)
 		{//cout<<"it: "<<it<<" "<<file_data[it].key<< " "<<file_data[it].key<<endl;	
 		}
@@ -277,6 +282,128 @@ int write_to_disk(lsm* tree){
   if(fclose(fw)){
     perror("put: close 2: \n");
   }
+
+
+  if  (num_elements>=disk_size1)
+  {
+    FILE* fr  = fopen(tree->disk2, "r");
+	r = fread(&num_elements2, sizeof(size_t), 1, fr);	
+    file_data2 = malloc(sizeof(node)*num_elements2);
+
+    r = fread(file_data, sizeof(node), num_elements2, fr);
+    check_file_ret(fr, r);
+    if(fclose(fr)){
+      perror("put: close 2: \n");
+    }
+    complete_data = malloc(sizeof(node)*(num_elements2+num_elements));
+    merge(complete_data, file_data, num_elements, file_data2,num_elements2);
+    num_elements2 += num_elements;
+    //free(file_data);
+  FILE* fw2  = fopen(tree->disk2, "w");
+  if(complete_data == NULL){
+    complete_data = num_elements;
+  }
+  if(num_elements <= 0){
+    num_elements = tree->next_empty;
+  }
+  // seek to the start of the file & write # of elements
+  if(fseek(fw2, 0, SEEK_SET)){
+    perror("put: fseek 4: \n");
+  }
+  if(!fwrite(&num_elements2, sizeof(size_t), 1, fw2)){
+    perror("put: fwrite 4: \n");
+  }
+  // seek to the first space after the number of elements
+  if(fseek(fw2, sizeof(size_t), SEEK_SET)){
+    perror("put: fseek 5: \n");
+  }
+  if(!fwrite(complete_data,  sizeof(node), num_elements2, fw2)){
+    perror("put: fwrite 5: \n");
+    }
+   num_elements2 = 0;
+  }
+
+
+  if  (num_elements>=disk_size2)
+  {
+    FILE* fr  = fopen(tree->disk3, "r");
+	r = fread(&num_elements3, sizeof(size_t), 1, fr);	
+    file_data3 = malloc(sizeof(node)*num_elements3);
+
+    r = fread(file_data2, sizeof(node), num_elements3, fr);
+    check_file_ret(fr, r);
+    if(fclose(fr)){
+      perror("put: close 2: \n");
+    }
+    complete_data = malloc(sizeof(node)*(num_elements2+num_elements3));
+    merge(complete_data, file_data3, num_elements3, file_data2,num_elements2);
+    num_elements3 += num_elements2;
+    //free(file_data);
+  FILE* fw3  = fopen(tree->disk3, "w");
+  if(complete_data == NULL){
+    complete_data = tree->block;
+  }
+  if(num_elements <= 0){
+    num_elements = tree->next_empty;
+  }
+  // seek to the start of the file & write # of elements
+  if(fseek(fw3, 0, SEEK_SET)){
+    perror("put: fseek 4: \n");
+  }
+  if(!fwrite(&num_elements3, sizeof(size_t), 1, fw3)){
+    perror("put: fwrite 4: \n");
+  }
+  // seek to the first space after the number of elements
+  if(fseek(fw3, sizeof(size_t), SEEK_SET)){
+    perror("put: fseek 5: \n");
+  }
+  if(!fwrite(complete_data,  sizeof(node), num_elements3, fw3)){
+    perror("put: fwrite 5: \n");
+    }
+   num_elements3 = 0;
+  } 
+
+
+  if  (num_elements>=disk_size3)
+  {
+    FILE* fr  = fopen(tree->disk4, "r");
+	r = fread(&num_elements4, sizeof(size_t), 1, fr);	
+    file_data4 = malloc(sizeof(node)*num_elements4);
+
+    r = fread(file_data, sizeof(node), num_elements4, fr);
+    check_file_ret(fr, r);
+    if(fclose(fr)){
+      perror("put: close 2: \n");
+    }
+    complete_data = malloc(sizeof(node)*(num_elements2+num_elements));
+    merge(complete_data, file_data4, num_elements4, file_data3,num_elements3);
+    num_elements4 += num_elements3;
+    //free(file_data);
+  FILE* fw4  = fopen(tree->disk4, "w");
+  if(complete_data == NULL){
+    complete_data = tree->block;
+  }
+  if(num_elements <= 0){
+    num_elements = tree->next_empty;
+  }
+  // seek to the start of the file & write # of elements
+  if(fseek(fw, 0, SEEK_SET)){
+    perror("put: fseek 4: \n");
+  }
+  if(!fwrite(&num_elements4, sizeof(size_t), 1, fw4)){
+    perror("put: fwrite 4: \n");
+  }
+  // seek to the first space after the number of elements
+  if(fseek(fw4, sizeof(size_t), SEEK_SET)){
+    perror("put: fseek 5: \n");
+  }
+  if(!fwrite(complete_data,  sizeof(node), num_elements4, fw4)){
+    perror("put: fwrite 5: \n");
+    }
+   num_elements4 = 0;
+  }
+
+
   return 0; 
 }
 
@@ -285,7 +412,7 @@ int put(const keyType* key, const valType* val, lsm* tree){
   //cout<<"nextempty: "<<tree->next_empty<<endl;
 	//cout<<*key<<*val;
   int r = 0; 
-  //tree->sl.Insert(*key,*val);
+  tree->sl.Insert(*key,*val);
   //tree->sl.Print();
   if(tree->next_empty == tree->block_size){
     // buffer is full and must be written to disk
@@ -311,53 +438,7 @@ int lsmdelete(const keyType* key, lsm* tree){
     tree->next_empty -= 1;
 	tree->sl.Erase(key);
     memmove(&tree->block[ni->index], &tree->block[ni->index+1], tree->block_size-ni->index);
-  } else {
-    // if the node is on disk 
-    ni = search_disk(key, tree);
-    assert(ni);
-    FILE* fr  = fopen(tree->disk1, "r");
-    if(fr == NULL){
-      perror("delete: open: \n");
-    }
-    size_t num_elements = 0;
-    node* file_data;
-    // read number of elements 
-    r = fread(&num_elements, sizeof(size_t), 1, fr);
-    check_file_ret(fr, r);
-    // allocate memory for nodes on disk
-    file_data = malloc(sizeof(node)*num_elements);
-    assert(file_data);
-    // read nodes on disk into memory
-    r = fread(file_data, sizeof(node), num_elements, fr);
-    if(r == 0){ 
-      if(ferror(fr)){
-	perror("put fread 2: ferror\n");
-      }
-	else if(feof(fr)){
-	  perror("put fread 2: EOF found\n");
-	}
-    }
-    if(fclose(fr)){
-      perror("put: close 2: \n");
-    }
-    num_elements = num_elements - 1; 
-    memmove(&file_data[ni->index], &file_data[ni->index+1], num_elements-ni->index);
-    // write the new file data to disk 
-    FILE* fw  = fopen(tree->disk1, "w");
-    if(fseek(fw, 0, SEEK_SET)){
-      perror("delete seek:  \n");
-    }
-    if(!fwrite(&num_elements, sizeof(size_t), 1, fw)){
-      perror("delete fwrite: \n");
-    }
-    if(!fwrite(file_data,  sizeof(node), num_elements, fw)){
-      perror("delete fwrite: \n");
-    }
-    if(fclose(fw)){
-      perror("put: close 2: \n");
-    }
-  }
-  return 0;
+  } 
 }
 
 
@@ -380,11 +461,7 @@ int update(const keyType* key, const valType* val, lsm* tree){
   return 0;
 }
 
-void print_buffer_data(lsm* tree){
-  /* Prints all data in buffer. 
-     Args: 
-     tree (lsm*): pointer to lsm associated with data. 
-   */
+
   for(int i = 0; i < tree->next_empty; i++){
     printf("key %i \n",tree->block[i].key);
     printf("value %i\n",tree->block[i].val);
@@ -392,10 +469,6 @@ void print_buffer_data(lsm* tree){
 }
 
 void print_disk_data(lsm* tree){
-  /* Prints all data on disk. 
-     Args: 
-     tree (lsm*): pointer to lsm associated with data. 
-   */
   printf("printing disk data\n");
   FILE* f = fopen(tree->disk1, "r"); 
   node *file_data;
