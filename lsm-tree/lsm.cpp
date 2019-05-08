@@ -243,11 +243,8 @@ int write_to_disk(lsm* tree){
 	
     // merge buffer and  disk
     complete_data = malloc(sizeof(node)*(num_elements+tree->next_empty));
-	//cout<<sizeof(complete_data);
-	//cout<<num_elements<<"  "<<tree->next_empty<<endl;
-	for (int it=0;it<100;it++)
-		{//cout<<"it: "<<it<<" "<<file_data[it].key<< " "<<file_data[it].key<<endl;	
-		}
+    merge_sort(file_data,num_elements+tree->next_empty);
+    merge_sort(tree->block,num_elements+tree->next_empty);
     merge(complete_data, file_data, num_elements, tree->block,tree->next_empty);
 	//cout<<"merge done"<<endl;
     num_elements += tree->block_size;
@@ -459,7 +456,7 @@ int update(const keyType* key, const valType* val, lsm* tree){
   }
   
   return 0;
-}
+
 
 
   for(int i = 0; i < tree->next_empty; i++){
